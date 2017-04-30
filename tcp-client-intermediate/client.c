@@ -22,8 +22,8 @@
 
 #define BUF_MAXLEN 255
 #define MAX_STR 1023
-#define MSG_OK 	 "+OK\r\n"
-#define MSG_ERR  "-ERR\r\n"
+#define MSG_OK 	 "+OK"
+#define MSG_ERR  "-ERR"
 #define MSG_QUIT "QUIT\r\n"
 
 #ifdef DEBUG
@@ -48,7 +48,7 @@ int main (int argc, char *argv[]) {
 
 	// Check passed parameters and validate them
 	if (!(argc == 3))
-	  err_quit ("usage: %s <server_hostname> <server_port>", argv[0]);
+	  err_quit ("usage: %s <ip> <port>", argv[0]);
 
 	prog_name = argv[0];
 	dest_h 	  = argv[1];
@@ -60,7 +60,7 @@ int main (int argc, char *argv[]) {
 
 	// Create the socket (end point communication)
 	sockfd = Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	trace(err_msg("[%s] Socket created", prog_name));
+	debug(err_msg("[%s] Socket created", prog_name));
 
 	// Prepare informations for the connection
 	memset(&destaddr, 0, sizeof(destaddr));
@@ -70,24 +70,20 @@ int main (int argc, char *argv[]) {
 	
 	// Connect to the TCP SERVER
 	Connect(sockfd, (struct sockaddr *)&destaddr, sizeof(destaddr));
-	trace(err_msg("[%s] connected to %s:%u", prog_name,
+	debug(err_msg("[%s] connected to %s:%u", prog_name,
 		inet_ntoa(destaddr.sin_addr), ntohs(destaddr.sin_port)));
 
 	while(1) {
 
 		// Get the filename to ask and prepare the request
 		printf("(%s) Type the file you want (exit with CTRL+D): \n", prog_name);
-		char *res = fgets(fname, BUF_MAXLEN-10, stdin);
-
-		// Check the fname whether it is not a invalid input
-		if (res == NULL)
+		if (fgets(fname, BUF_MAXLEN-10, stdin) == NULL)
 			break;
 
-		sprintf(buf, "GET %s\r\n", fname);
-
 		// Send the request
+		sprintf(buf, "GET %s\r\n", fname);
 		Write(sockfd, buf, strlen(buf));
-		trace(err_msg("(%s) Data has been sent", prog_name));
+		debug(err_msg("(%s) Request has been sent", prog_name));
 
 		fd_set rset;
 		struct timeval tv;
@@ -107,7 +103,7 @@ int main (int argc, char *argv[]) {
 			  buf[nread++]=c;
 			} while (c!='\n' && nread<BUF_MAXLEN-1);
 
-			trace(err_msg("[%s] Received string: %s", prog_name, buf));
+			debug(err_msg("[%s] Received string: %s", prog_name, buf));
 
 			if ((nread >= strlen(MSG_OK)) && strncmp(buf, MSG_OK, strlen(MSG_OK)) == 0) {
 				char fnamestr[MAX_STR+1];
@@ -116,12 +112,12 @@ int main (int argc, char *argv[]) {
 				//Get the number of bytes to receive
 				Read(sockfd, buf, 4);
 				uint32_t file_bytes = ntohl((*(uint32_t *) buf));
-				trace(err_msg("[%s] Received file size '%u'", prog_name, file_bytes));
+				debug(err_msg("[%s] Received file size '%u'", prog_name, file_bytes));
 
 				//Get the timestamp of the last modification
 				Read(sockfd, buf, 4);
 				timestamp = ntohl((time_t) buf);
-				trace(err_msg("[%s] Received the timestamp of the last modification:%d.",
+				debug(err_msg("[%s] Received the timestamp of the last modification:%d.",
 					prog_name, timestamp));
 
 				FILE *fp;
@@ -134,11 +130,11 @@ int main (int argc, char *argv[]) {
 					}
 
 					fclose(fp);
-					trace(err_msg("[%s] Received and wrote file: %s", prog_name, fnamestr));
+					debug(err_msg("[%s] Received and wrote file: %s", prog_name, fnamestr));
 				} else 
-				    trace(err_msg("[%s] Cannot open file: %s", prog_name, fnamestr) );
+				    debug(err_msg("[%s] Cannot open file: %s", prog_name, fnamestr) );
 			} else
-			    trace (err_quit("[%s] Protocol error: received response: %s", prog_name, buf));
+			    debug (err_quit("[%s] Protocol error: received response: %s", prog_name, buf));
 		} else 
 		    printf("Timeout waiting for an answer from server\n");
 	}
