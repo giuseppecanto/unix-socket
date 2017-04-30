@@ -25,10 +25,10 @@
 #define MSG_OK "+OK"
 #define MSG_ERR "-ERR"
 
-#ifdef TRACE
-#define trace(x) x
+#ifdef DEBUG
+#define debug(x) x
 #else
-#define trace(x)
+#define debug(x)
 #endif
 
 char *prog_name;
@@ -58,7 +58,7 @@ int main (int argc, char *argv[]) {
 
 	// Create the socket (end point communication)
 	sockfd = Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	trace(err_msg("[%s] I created a socket.", prog_name));
+	debug(err_msg("[%s] I created a socket.", prog_name));
 
 	// Set the struct sockaddr_in daddr for the destination
 	Getaddrinfo(dest_h, dest_p, NULL, &list);
@@ -70,7 +70,7 @@ int main (int argc, char *argv[]) {
 
 	// Connect to the destination using the previous daddr
 	Connect(sockfd, (struct sockaddr *) &daddr, sizeof(daddr));
-	trace(err_msg("[%s] I am now connected to: %s:%u.", prog_name, inet_ntoa(daddr.sin_addr), ntohs(daddr.sin_port)));
+	debug(err_msg("[%s] I am now connected to: %s:%u.", prog_name, inet_ntoa(daddr.sin_addr), ntohs(daddr.sin_port)));
 	printf("Client ready, waiting for commands (GET file, Q, A):\n");
 
 	char c, command[MAXBUFL];
@@ -114,7 +114,7 @@ int main (int argc, char *argv[]) {
 				} while ((c != '\n') && (nread < MAXBUFL-1));
 				
 				buf[nread] = '\0';
-				trace(err_msg("[%s] --- I received the string: %s", prog_name, buf));
+				debug(err_msg("[%s] --- I received the string: %s", prog_name, buf));
                         
 				if ((nread >= strlen(MSG_OK)) && (strncmp(buf, MSG_OK, strlen(MSG_OK)) == 0)) {
 
@@ -124,25 +124,25 @@ int main (int argc, char *argv[]) {
 					// Reading the number of bytes to be received
 					Read(sockfd, buf, 4);
 					file_bytes = ntohl((*(uint32_t *) buf));
-					trace(err_msg("(%s) --- received file size '%u'",prog_name, file_bytes));
+					debug(err_msg("(%s) --- received file size '%u'",prog_name, file_bytes));
 
 					// Reading the timestamp of the last modification of the file
 					Read(sockfd, buf, 4);
 					timestamp = ntohl((time_t) buf);
-					trace(err_msg("[%s] --- I received the timestamp of the last modification. %d", prog_name, timestamp));
+					debug(err_msg("[%s] --- I received the timestamp of the last modification. %d", prog_name, timestamp));
 
                        			// Open the file
 					if ((fp = fopen(fnamestr, "wb")) != NULL) {
-						trace(err_msg("(%s) --- opened file '%s' for writing", prog_name, fnamestr));
+						debug(err_msg("(%s) --- opened file '%s' for writing", prog_name, fnamestr));
 						file_ptr = 0;
 						flag_reading_file = 1;
 					} else 
-						trace(err_quit("(%s) --- cannot open file '%s'",prog_name, fnamestr));
+						debug(err_quit("(%s) --- cannot open file '%s'",prog_name, fnamestr));
 
 				} else if (nread >= strlen(MSG_ERR) && strncmp(buf,MSG_ERR,strlen(MSG_ERR))==0) 
-					trace ( err_msg("(%s) - received '%s' from server: maybe a wrong request?", prog_name, buf) );
+					debug ( err_msg("(%s) - received '%s' from server: maybe a wrong request?", prog_name, buf) );
 				  else
-					trace ( err_quit("(%s) - protocol error: received response '%s'", prog_name, buf) );
+					debug ( err_quit("(%s) - protocol error: received response '%s'", prog_name, buf) );
 		
 			} else if (flag_reading_file==1) {
 				
@@ -152,11 +152,11 @@ int main (int argc, char *argv[]) {
 
 				if (file_ptr == file_bytes) {
 					fclose(fp);
-					trace( err_msg("(%s) --- received and wrote file '%s'",prog_name, fnamestr) );
+					debug( err_msg("(%s) --- received and wrote file '%s'",prog_name, fnamestr) );
 					flag_reading_file = 0;
 				}
 			} else {
-				trace ( err_quit("(%s) - flag_reading_file error '%d'", prog_name, flag_reading_file) );
+				debug ( err_quit("(%s) - flag_reading_file error '%d'", prog_name, flag_reading_file) );
 			}
 		}
 
@@ -172,7 +172,7 @@ int main (int argc, char *argv[]) {
 			switch(command[0]) {
 				case 'G':
 				case 'g':
-					trace( err_msg("(%s) --- GET command sent to server",prog_name, fnamestr) );
+					debug( err_msg("(%s) --- GET command sent to server",prog_name, fnamestr) );
 					Write(sockfd, command, strlen(command));
 					break;
 				case 'Q':
